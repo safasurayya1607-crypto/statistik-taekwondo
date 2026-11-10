@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TKD Scoring Suite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif}
+body{background:#0a0e17;color:#e0e6ed;padding:15px;user-select:none}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #f59e0b;outline-offset:2px}
+.header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;background:#121621;padding:12px 20px;border-radius:6px;border:1px solid #2a3245}
+.header-title{font-size:1.1rem;font-weight:700;color:#3b82f6}
+.header-preset{font-size:.85rem;background:#1e293b;padding:4px 10px;border-radius:4px;border:1px solid #334155}
+.scoreboard{display:grid;grid-template-columns:1fr 240px 1fr;gap:15px;margin:15px 0}
+.card{background:#1a1f2c;border-radius:8px;padding:20px;text-align:center;border:2px solid #2a3245}
+.card.hong{border-color:#ef4444}.card.chong{border-color:#3b82f6}
+.athlete-name{font-size:1.2rem;font-weight:800;text-transform:uppercase;margin-bottom:5px}
+.dojang-name{font-size:.85rem;color:#8a99ad;margin-bottom:10px}
+.score-display{font-size:5rem;font-weight:900;line-height:1;margin:5px 0}
+.card.hong .score-display{color:#ef4444}.card.chong .score-display{color:#3b82f6}
+.timer-display{font-size:3.2rem;font-weight:bold;color:#f59e0b;font-family:'Courier New',monospace;margin:6px 0}
+.timer-display.paused{opacity:.55}
+.banner{margin:0 0 15px;padding:10px;border-radius:6px;text-align:center;font-weight:700;background:#1e293b;border:1px solid #334155;display:none}
+.banner.show{display:block}.banner.win{background:#14532d;border-color:#10b981}
+.shortcut-panel{display:grid;grid-template-columns:1fr 1fr;gap:15px;background:#121621;padding:15px;border-radius:8px;border:1px solid #2a3245;line-height:1.8}
+.agroup{margin-bottom:10px}
+.agroup h4{font-size:.8rem;color:#8a99ad;margin-bottom:4px}
+.abtns{display:flex;flex-wrap:wrap;gap:6px}
+.tbtn{flex:1 1 130px;padding:8px 6px;border-radius:6px;border:1px solid;background:#1a1f2c;color:#e0e6ed;cursor:pointer;text-align:center;line-height:1.25}
+.tbtn b{display:block;font-size:.9rem}
+.tbtn small{color:#8a99ad;font-size:.72rem}
+.tbtn.hong{border-color:#ef4444}.tbtn.hong:hover:not(:disabled){background:#3a1d22}
+.tbtn.chong{border-color:#3b82f6}.tbtn.chong:hover:not(:disabled){background:#1c2a4a}
+.tbtn.pen{border-style:dashed}
+.gbtn{flex:1 1 220px;padding:10px 8px;border-radius:6px;border:1px solid #f59e0b;background:#1a1f2c;color:#e0e6ed;cursor:pointer;text-align:left;line-height:1.25}
+.gbtn b{display:block;font-size:.9rem}.gbtn small{color:#8a99ad;font-size:.72rem}
+.gbtn:hover{background:#3a2d12}
+.tbtn:disabled{opacity:.4;cursor:not-allowed}
+.sticky-bar{position:sticky;top:0;z-index:50;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:#0f1420;border:1px solid #2a3245;border-radius:8px;padding:8px 14px;margin:12px 0;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.sb-side{display:flex;align-items:center;gap:12px;font-weight:800;text-transform:uppercase;min-width:0}
+.sb-side b{font-size:2.4rem;line-height:1}
+.sb-side span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-side.hong{color:#ef4444}.sb-side.chong{color:#3b82f6;justify-content:flex-end}
+.sb-mid{text-align:center}
+.sb-time{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+.sb-time .timer-display{font-size:2.6rem;margin:0}
+.sb-play{font-size:1.3rem;padding:6px 16px}
+.small-note{font-size:.8rem;color:#8a99ad}
+a.btn{display:inline-block;text-decoration:none}
+.hit-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hit-choice .btn{padding:18px 8px;font-size:1.3rem;line-height:1.3}
+.hit-choice .btn small{display:block;font-size:.72rem;font-weight:normal;margin-top:4px;opacity:.9}
+.miss-tag{color:#f59e0b;font-weight:700}
+.btn.on{background:#f59e0b;color:#111}
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px}
+.panel{background:#121621;border:1px solid #2a3245;border-radius:6px;padding:10px;font-size:.85rem}
+.panel h3{font-size:.95rem;margin-bottom:6px;color:#8a99ad}
+.log-container{height:230px;overflow-y:auto;font-family:monospace}
+.log-item{margin-bottom:4px;padding:3px 0;border-bottom:1px solid #1a1f2c}
+.btn{padding:8px 16px;border-radius:6px;border:none;font-weight:bold;cursor:pointer;color:#fff;background:#334155}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:#3b82f6}.btn-warning{background:#f59e0b}.btn-success{background:#10b981}.btn-danger{background:#ef4444}
+.stack .btn{width:100%;margin-top:8px}
+table.stat{width:100%;border-collapse:collapse}
+table.stat th,table.stat td{border:1px solid #2a3245;padding:4px 6px;text-align:center}
+table.stat th{background:#1a1f2c}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;z-index:1000}
+.modal{background:#1a1f2c;width:min(550px,92vw);max-height:92vh;overflow:auto;border-radius:10px;border:1px solid #2a3245;padding:20px}
+.modal-header{font-size:1.1rem;font-weight:bold;color:#3b82f6;margin-bottom:15px;border-bottom:1px solid #2a3245;padding-bottom:8px}
+.form-control{width:100%;padding:8px;margin:4px 0 10px;background:#121621;color:#fff;border:1px solid #2a3245;border-radius:4px;user-select:text}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.row-end{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+#printable-scoresheet{display:none}
+.sheet-box{border:2px solid #000;padding:15px;color:#000;background:#fff}
+.sheet-table{width:100%;border-collapse:collapse;margin-top:10px}
+.sheet-table th,.sheet-table td{border:1px solid #000;padding:5px;text-align:center;font-size:9pt;color:#000}
+@media(max-width:800px){.scoreboard,.lower,.shortcut-panel{grid-template-columns:1fr}.sb-side span{display:none}.sb-side b{font-size:1.8rem}.sb-time .timer-display{font-size:2rem}}
+@media print{
+  html,body{background:#fff!important;color:#000!important;padding:0!important}
+  #app-console,.modal-overlay{display:none!important}
+  #printable-scoresheet{display:block!important}
+  @page{size:A4 portrait;margin:10mm}
+}
+</style>
+</head>
+<body>
+<div id="app-console">
+  <div class="header">
+    <div class="header-title">TAEKWONDO SCORING SUITE</div>
+    <div><strong id="h-match"></strong></div>
+    <div class="header-preset">Preset: <span style="color:#10b981">WT, best of 3</span></div>
+    <div class="small-note" id="h-staff"></div>
+    <div>
+      <button class="btn" id="btn-event">Data event</button>
+      <button class="btn" id="btn-setup">Setup pertandingan</button>
+      <button class="btn" id="btn-logout">Ganti petugas</button>
+      <button class="btn btn-danger" id="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="sticky-bar" id="sticky-bar">
+    <div class="sb-side hong"><span id="sb-hong-name"></span><b id="sb-hong-score">00</b></div>
+    <div class="sb-mid">
+      <div class="small-note" id="round-label">RONDE 1</div>
+      <div class="sb-time">
+        <span class="timer-display paused" id="timer-display">02:00</span>
+        <button class="btn btn-primary sb-play" id="btn-timer" title="Start / Pause [Space]">▶</button>
+        <button class="btn" id="btn-time-edit" title="Ubah waktu manual">Ubah waktu</button>
+        <button class="btn btn-warning" id="btn-score-edit" title="Koreksi skor manual">Ubah skor</button>
+      </div>
+      <div class="small-note" id="timer-state">Berhenti</div>
+    </div>
+    <div class="sb-side chong"><b id="sb-chong-score">00</b><span id="sb-chong-name"></span></div>
+  </div>
+
+  <div class="scoreboard" style="margin-bottom:10px">
+    <div class="card hong">
+      <div class="athlete-name" id="hong-name"></div>
+      <div class="dojang-name" id="hong-dojang"></div>
+      <div class="small-note" id="hong-coach" style="margin:-6px 0 8px"></div>
+      <div class="score-display" id="hong-score">00</div>
+      <div>Gam-jeom: <span id="hong-gamjeom">0</span> | Ronde menang: <span id="hong-wins">0</span></div>
+      <div style="margin-top:6px;font-size:.8rem;color:#8a99ad">Kartu IVR: <span id="hong-cards"></span></div>
+    </div>
+    <div class="card stack">
+      <div class="small-note">Kontrol partai</div>
+      <button class="btn btn-warning" id="btn-ivr">IVR Challenge [F3]</button>
+      <button class="btn" id="btn-undo">Undo [Ctrl+Z]</button>
+      <button class="btn btn-primary" id="btn-pdf">Unduh PDF scoresheet</button>
+      <button class="btn btn-success" id="btn-print">Cetak (buka PDF lengkap)</button>
+    </div>
+    <div class="card chong">
+      <div class="athlete-name" id="chong-name"></div>
+      <div class="dojang-name" id="chong-dojang"></div>
+      <div class="small-note" id="chong-coach" style="margin:-6px 0 8px"></div>
+      <div class="score-display" id="chong-score">00</div>
+      <div>Gam-jeom: <span id="chong-gamjeom">0</span> | Ronde menang: <span id="chong-wins">0</span></div>
+      <div style="margin-top:6px;font-size:.8rem;color:#8a99ad">Kartu IVR: <span id="chong-cards"></span></div>
+    </div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="shortcut-panel">
+    <div>
+      <h3 style="color:#ef4444;margin-bottom:8px">Hong (merah): klik teknik, lalu pilih Made / Miss</h3>
+      <div id="acts-hong"></div>
+    </div>
+    <div>
+      <h3 style="color:#3b82f6;margin-bottom:8px">Chong (biru): klik teknik, lalu pilih Made / Miss</h3>
+      <div id="acts-chong"></div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="panel"><h3>Log pertandingan</h3><div class="log-container" id="log-box"></div></div>
+    <div class="panel"><h3>Hasil ronde</h3><div id="rounds-box"></div><h3 style="margin-top:12px">Statistik teknik</h3><div id="stats-box"></div></div>
+  </div>
+</div>
+
+<!-- IVR -->
+<div class="modal-overlay" id="ivr-modal"><div class="modal">
+  <div class="modal-header">Instant Video Replay (IVR)</div>
+  <label>Pelatih pengaju protes</label>
+  <select id="ivr-applicant" class="form-control">
+    <option value="hong">Hong coach (merah)</option><option value="chong">Chong coach (biru)</option>
+  </select>
+  <label>Jenis protes</label>
+  <select id="ivr-category" class="form-control">
+    <option value="HEAD_KICK">Tambah tendangan kepala (+3)</option>
+    <option value="HEAD_SPIN">Tambah tendangan putar kepala (+5)</option>
+    <option value="REVOKE_GAMJEOM">Batalkan gam-jeom</option>
+  </select>
+  <div class="row-end">
+    <button class="btn" id="btn-ivr-cancel">Batal</button>
+    <button class="btn btn-danger" id="btn-ivr-reject">Ditolak (kartu hangus)</button>
+    <button class="btn btn-success" id="btn-ivr-accept">Diterima</button>
+  </div>
+</div></div>
+
+<!-- SERI -->
+<div class="modal-overlay" id="tie-modal"><div class="modal">
+  <div class="modal-header">Ronde berakhir seri</div>
+  <p style="margin-bottom:14px">Poin sama. Pilih pemenang ronde sesuai keputusan wasit (superiority / golden point).</p>
+  <div class="row-end">
+    <button class="btn btn-danger" id="tie-hong">Hong menang</button>
+    <button class="btn btn-primary" id="tie-chong">Chong menang</button>
+  </div>
+</div></div>
+
+<!-- SETUP -->
+<div class="modal-overlay" id="setup-modal"><div class="modal">
+  <div class="modal-header">Setup pertandingan</div>
+  <label>Nama kejuaraan</label><input class="form-control" id="s-event">
+  <div class="grid2">
+    <div><label>ID partai</label><input class="form-control" id="s-match"></div>
+    <div><label>Lapangan</label><input class="form-control" id="s-mat"></div>
+  </div>
+  <label>Kategori</label><input class="form-control" id="s-cat">
+  <div class="grid2">
+    <div><label>Hong: nama atlet</label><input class="form-control" id="s-hname"></div>
+    <div><label>Hong: dojang</label><input class="form-control" id="s-hdojang"></div>
+    <div><label>Hong: nama coach</label><input class="form-control" id="s-hcoach"></div>
+    <div><label>Hong: ID coach</label><input class="form-control" id="s-hcoachid"></div>
+    <div><label>Chong: nama atlet</label><input class="form-control" id="s-cname"></div>
+    <div><label>Chong: dojang</label><input class="form-control" id="s-cdojang"></div>
+    <div><label>Chong: nama coach</label><input class="form-control" id="s-ccoach"></div>
+    <div><label>Chong: ID coach</label><input class="form-control" id="s-ccoachid"></div>
+  </div>
+  <div class="row-end">
+    <button class="btn" id="btn-setup-cancel">Batal</button>
+    <button class="btn btn-success" id="btn-setup-save">Simpan</button>
+  </div>
+</div></div>
+
+<!-- LOGIN PETUGAS -->
+<div class="modal-overlay" id="login-modal" style="display:flex"><div class="modal">
+  <div class="modal-header">Masuk petugas pertandingan</div>
+  <p class="small-note" style="margin-bottom:12px">Isi nama petugas statistik dan caller.</p>
+  <div class="grid2">
+    <div><label>Petugas statistik</label><input class="form-control" id="l-sname" autocomplete="off"></div>
+    <div><label>Caller</label><input class="form-control" id="l-cname" autocomplete="off"></div>
+  </div>
+  <div id="login-err" style="color:#ef4444;min-height:1.2em;margin-bottom:10px;font-size:.85rem"></div>
+  <div class="row-end"><button class="btn btn-success" id="btn-login">Masuk</button></div>
+</div></div>
+
+<!-- JENIS GAM-JEOM -->
+<div class="modal-overlay" id="gam-modal"><div class="modal" style="width:min(680px,94vw)">
+  <div class="modal-header">Gam-jeom: pilih jenis pelanggaran</div>
+  <p style="margin-bottom:12px" id="gam-who"></p>
+  <div class="abtns" id="gam-grid" style="margin-bottom:14px"></div>
+  <div class="row-end"><button class="btn" id="gam-cancel">Batal</button></div>
+</div></div>
+
+<!-- HASIL TEKNIK: MADE / MISS -->
+<div class="modal-overlay" id="hit-modal"><div class="modal" style="width:min(440px,94vw)">
+  <div class="modal-header">Hasil teknik</div>
+  <p id="hit-who" style="margin-bottom:16px;line-height:1.6"></p>
+  <div class="small-note" id="hit-hint" style="text-align:center;margin-bottom:6px"></div>
+  <div style="text-align:center;margin-bottom:12px"><svg id="hit-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="width:260px;height:260px;cursor:crosshair;background:#121621;border-radius:6px"></svg></div>
+  <div class="row-end" style="justify-content:center;align-items:center;margin-bottom:12px">
+    <span class="small-note">Sisi kaki/tangan penyerang (opsional):</span>
+    <button class="btn" id="side-R">Kanan [R]</button><button class="btn" id="side-L">Kiri [L]</button>
+  </div>
+  <div class="hit-choice">
+    <button class="btn btn-success" id="hit-made"><span>MADE</span><small>Masuk, poin bertambah [M]</small></button>
+    <button class="btn btn-danger" id="hit-miss"><span>MISS</span><small>Tidak masuk, hanya dicatat [N]</small></button>
+  </div>
+  <div class="row-end" style="margin-top:12px"><button class="btn" id="hit-cancel">Batal (tidak dicatat)</button></div>
+</div></div>
+
+<!-- DATA EVENT -->
+<div class="modal-overlay" id="ev-modal"><div class="modal">
+  <div class="modal-header">Data event</div>
+  <label>Nama event</label><input class="form-control" id="ev-name">
+  <label>Alamat / lokasi event</label><input class="form-control" id="ev-addr" placeholder="mis. GOR Kelud, Jl. Merdeka No. 1, Blitar">
+  <div class="grid2">
+    <div><label>Tanggal</label><input type="date" class="form-control" id="ev-date"></div>
+    <div><label>Logo event</label><input type="file" accept="image/*" class="form-control" id="ev-logo"></div>
+  </div>
+  <img id="ev-prev" alt="" style="max-height:60px;display:none;margin-bottom:10px;background:#fff;padding:3px;border-radius:4px">
+  <div class="row-end"><button class="btn" id="ev-skip">Lewati</button><button class="btn btn-success" id="ev-save">Simpan</button></div>
+</div></div>
+
+<!-- PDF SIAP -->
+<div class="modal-overlay" id="pdf-modal"><div class="modal" style="width:min(470px,94vw)">
+  <div class="modal-header">Scoresheet PDF siap</div>
+  <p id="pdf-name" class="small-note" style="word-break:break-all;margin-bottom:10px"></p>
+  <p style="margin-bottom:14px;line-height:1.6">Klik <b>Unduh PDF</b> untuk menyimpan, atau <b>Buka di tab baru</b> lalu cetak (Ctrl+P, atau menu Cetak di HP).</p>
+  <div class="row-end">
+    <a class="btn btn-success" id="pdf-dl">Unduh PDF</a>
+    <a class="btn btn-primary" id="pdf-open" target="_blank" rel="noopener">Buka di tab baru</a>
+    <button class="btn" id="pdf-close">Tutup</button>
+  </div>
+</div></div>
+
+<!-- KOREKSI SKOR -->
+<div class="modal-overlay" id="score-modal"><div class="modal">
+  <div class="modal-header">Koreksi skor manual</div>
+  <p class="small-note" style="margin-bottom:12px">Mengubah skor ronde yang sedang berjalan. Perubahan dicatat di log dan scoresheet, dan bisa dibatalkan dengan Undo.</p>
+  <div class="grid2">
+    <div><label style="color:#ef4444">Hong: skor</label><input class="form-control" type="number" step="1" id="ms-hp"></div>
+    <div><label style="color:#3b82f6">Chong: skor</label><input class="form-control" type="number" step="1" id="ms-cp"></div>
+    <div><label style="color:#ef4444">Hong: gam-jeom</label><input class="form-control" type="number" step="1" min="0" id="ms-hg"></div>
+    <div><label style="color:#3b82f6">Chong: gam-jeom</label><input class="form-control" type="number" step="1" min="0" id="ms-cg"></div>
+  </div>
+  <label>Alasan (opsional)</label>
+  <input class="form-control" id="ms-reason" maxlength="120" placeholder="mis. salah input, keputusan wasit">
+  <div class="row-end">
+    <button class="btn" id="ms-cancel">Batal</button>
+    <button class="btn btn-success" id="ms-apply">Terapkan skor</button>
+  </div>
+</div></div>
+
+<!-- UBAH WAKTU -->
+<div class="modal-overlay" id="time-modal"><div class="modal">
+  <div class="modal-header">Ubah waktu ronde</div>
+  <div id="tm-now" style="text-align:center;font-size:2.6rem;font-family:'Courier New',monospace;color:#f59e0b;margin-bottom:10px">02:00</div>
+  <div class="row-end" style="justify-content:center;margin-bottom:14px">
+    <button class="btn" data-d="-10">-10 dtk</button><button class="btn" data-d="-1">-1 dtk</button>
+    <button class="btn" data-d="1">+1 dtk</button><button class="btn" data-d="10">+10 dtk</button>
+  </div>
+  <div class="grid2">
+    <div><label>Menit</label><input class="form-control" type="number" min="0" max="9" id="tm-min"></div>
+    <div><label>Detik</label><input class="form-control" type="number" min="0" max="59" id="tm-sec"></div>
+  </div>
+  <div class="row-end">
+    <button class="btn" id="tm-close">Tutup</button>
+    <button class="btn btn-success" id="tm-apply">Terapkan waktu</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="dlg-modal" style="z-index:2000"><div class="modal" style="width:min(420px,92vw)">
+  <div class="modal-header">Konfirmasi</div>
+  <p id="dlg-msg" style="margin-bottom:16px;line-height:1.5"></p>
+  <div class="row-end"><button class="btn" id="dlg-no">Batal</button><button class="btn btn-success" id="dlg-yes">OK</button></div>
+</div></div>
+
+<div id="printable-scoresheet"></div>
+
+<script>
+// ---------- ATURAN ----------
+// Selisih poin otomatis menang: ronde 1-2 = 20, ronde 3 = 12. Sesuaikan dengan regulasi WT terbaru.
+// Diskualifikasi (PUN): 10 gam-jeom dalam satu partai ATAU 5 gam-jeom dalam satu ronde. Cek lagi dengan regulasi kejuaraanmu.
+const PRESET = { maxGamjeomMatch: 10, maxGamjeomRound: 5, roundDuration: 120, roundsToWin: 2, gap: r => (r < 3 ? 20 : 12) };
+const GAMTYPES = [
+  { id: 'BOUNDARY', ina: 'Keluar batas lapangan', eng: 'Crossing the boundary line' },
+  { id: 'FALL', ina: 'Jatuh', eng: 'Falling down' },
+  { id: 'AVOID', ina: 'Menghindar / mengulur waktu', eng: 'Avoiding or delaying the contest' },
+  { id: 'GRAB', ina: 'Menangkap, memegang, atau mendorong', eng: 'Grabbing, holding, or pushing' },
+  { id: 'BELOW', ina: 'Menyerang di bawah pinggang', eng: 'Attacking below the waist' },
+  { id: 'KALYEO', ina: 'Menyerang setelah aba-aba Kal-yeo', eng: 'Attacking after "Kal-yeo"' },
+  { id: 'DOWNED', ina: 'Menyerang lawan yang sudah jatuh', eng: 'Attacking a downed opponent' },
+  { id: 'BODYPART', ina: 'Menyerang dengan kepala, lutut, atau siku', eng: 'Forbidden attack with head, knee, or elbow' },
+  { id: 'PUNCHFACE', ina: 'Memukul wajah dengan tangan', eng: 'Punching to the face' },
+  { id: 'UNSPORT', ina: 'Sikap tidak sportif', eng: 'Unsportsmanlike conduct' }
+];
+const gamName = id => (GAMTYPES.find(g => g.id === id) || { ina: 'Pelanggaran' }).ina;
+// Kelompok teknik dan nilainya. Gam-jeom = -1 untuk atlet yang melanggar.
+const GROUPS = [
+  { id: 'PUNCH', title: 'Pukulan', pts: 1 },
+  { id: 'BODY', title: 'Tendangan ke perut', pts: 2 },
+  { id: 'BODY_SPIN', title: 'Tendangan putar ke perut', pts: 4 },
+  { id: 'HEAD', title: 'Tendangan ke kepala', pts: 3 },
+  { id: 'HEAD_SPIN', title: 'Tendangan putar ke kepala', pts: 5 }
+];
+// Tambah/ubah teknik cukup di daftar ini; tombol dan statistik ikut otomatis.
+const TECHS = [
+  { id: 'PUNCH', g: 'PUNCH', kor: 'Momtong jireugi', ina: 'Pukulan ke badan' },
+  { id: 'BODY_DOLLYO', g: 'BODY', kor: 'Dollyo chagi', ina: 'Tendangan sabit ke perut' },
+  { id: 'BODY_YEOP', g: 'BODY', kor: 'Yeop chagi', ina: 'Tendangan samping ke perut' },
+  { id: 'BODY_AP', g: 'BODY', kor: 'Ap chagi', ina: 'Tendangan depan ke perut' },
+  { id: 'BODY_DWIT', g: 'BODY_SPIN', kor: 'Dwit chagi', ina: 'Tendangan belakang ke perut' },
+  { id: 'BODY_HURYEO', g: 'BODY_SPIN', kor: 'Dwi huryeo chagi', ina: 'Tendangan putar kait ke perut' },
+  { id: 'BODY_DWI_DOLLYO', g: 'BODY_SPIN', kor: 'Dwi dollyo chagi', ina: 'Tendangan putar sabit ke perut' },
+  { id: 'HEAD_DOLLYO', g: 'HEAD', kor: 'Eolgul dollyo chagi', ina: 'Tendangan sabit ke kepala' },
+  { id: 'HEAD_YEOP', g: 'HEAD', kor: 'Eolgul yeop chagi', ina: 'Tendangan samping ke kepala' },
+  { id: 'HEAD_NAERYEO', g: 'HEAD', kor: 'Naeryeo chagi', ina: 'Tendangan kapak ke kepala' },
+  { id: 'HEAD_DWIT', g: 'HEAD_SPIN', kor: 'Dwit chagi', ina: 'Tendangan belakang ke kepala' },
+  { id: 'HEAD_HURYEO', g: 'HEAD_SPIN', kor: 'Dwi huryeo chagi', ina: 'Tendangan putar kait ke kepala' },
+  { id: 'HEAD_DWI_DOLLYO', g: 'HEAD_SPIN', kor: 'Dwi dollyo chagi', ina: 'Tendangan putar sabit ke kepala' }
+];
+const TMAP = {};
+TECHS.forEach(t => { TMAP[t.id] = { ...t, pts: GROUPS.find(g => g.id === t.g).pts }; });
+TMAP.IVR_HEAD = { kor: 'Head kick via IVR', ina: 'Tendangan kepala, disetujui IVR', pts: 3 };
+TMAP.IVR_HEAD_SPIN = { kor: 'Spin head kick via IVR', ina: 'Tendangan putar kepala, disetujui IVR', pts: 5 };
+const COLOR = { hong: '#ef4444', chong: '#3b82f6' };
+const other = c => (c === 'hong' ? 'chong' : 'hong');
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const $ = id => document.getElementById(id);
+let dlgYes = null;
+function ask(msg, yes, infoOnly) { $('dlg-msg').textContent = msg; dlgYes = yes || null; $('dlg-no').style.display = infoOnly ? 'none' : ''; $('dlg-modal').style.display = 'flex'; }
+function say(msg) { ask(msg, null, true); }
+$('dlg-yes').addEventListener('click', () => { $('dlg-modal').style.display = 'none'; const f = dlgYes; dlgYes = null; if (f) f(); });
+$('dlg-no').addEventListener('click', () => { $('dlg-modal').style.display = 'none'; dlgYes = null; });
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+
+// ---------- STATE ----------
+const DEFAULT_SETUP = {
+  event: 'Kejuaraan Taekwondo National Open 2026', matchId: 'MAT1-KY-014', mat: 'MAT 1', cat: 'Senior putra under 58kg',
+  hongName: 'Ahmad Prasetyo', hongDojang: 'Dojang Garuda (DKI Jakarta)',
+  hongCoach: 'Rudi Hartono', hongCoachId: 'CH-001',
+  chongName: 'Budi Santoso', chongDojang: 'Dojang Tiger (Jawa Barat)',
+  chongCoach: 'Dewi Lestari', chongCoachId: 'CH-002'
+};
+// Petugas yang sedang bertugas (diisi saat login, hanya nama)
+let session = null;
+
+const freshScore = () => ({ points: 0, gam: 0, gamR: 0, wins: 0, cards: 2 });
+const freshState = setup => ({
+  setup, round: 1, roundTime: PRESET.roundDuration, running: false, status: 'IN_PROGRESS', winner: null, winReason: '',
+  awaitingTie: false, banner: '', sc: { hong: freshScore(), chong: freshScore() }, rounds: [], events: [], log: []
+});
+let S = freshState({ ...DEFAULT_SETUP });
+let undoStack = [];
+let timerId = null;
+
+function snap() { undoStack.push(JSON.stringify(S)); if (undoStack.length > 300) undoStack.shift(); }
+function undo() {
+  if (!undoStack.length || modalOpen()) return;
+  const prev = JSON.parse(undoStack.pop());
+  if (prev.round === S.round) prev.roundTime = S.roundTime;
+  stopTimer();
+  prev.running = false;
+  prev.setup = S.setup;
+  S = prev;
+  render();
+}
+
+// ---------- TIMER ----------
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } S.running = false; }
+function startTimer() {
+  stopTimer();
+  S.running = true;
+  timerId = setInterval(() => {
+    S.roundTime = Math.max(0, S.roundTime - 1);
+    if (S.roundTime === 0) timeUp();
+    render();
+  }, 1000);
+}
+function toggleTimer() {
+  if (S.status !== 'IN_PROGRESS' || S.awaitingTie || modalOpen() || S.roundTime <= 0) return;
+  S.running ? stopTimer() : startTimer();
+  if (S.running) S.banner = '';
+  render();
+}
+function timeUp() {
+  stopTimer();
+  closeHit();
+  const h = S.sc.hong.points, c = S.sc.chong.points;
+  if (h !== c) endRound(h > c ? 'hong' : 'chong', 'Poin lebih tinggi');
+  else { S.awaitingTie = true; $('tie-modal').style.display = 'flex'; }
+}
+
+// ---------- LOGIKA PERTANDINGAN ----------
+const canScore = () => S.status === 'IN_PROGRESS' && !S.awaitingTie && !modalOpen();
+const name = c => S.setup[c + 'Name'];
+function addLog(html) { S.log.unshift(`[${fmt(S.roundTime)}] ${html}`); }
+
+function act(corner, tech, gamType, result, at, loc, side) {
+  if (!canScore()) return;
+  snap();
+  const me = S.sc[corner], opp = S.sc[other(corner)];
+  const miss = result === 'MISS';
+  if (tech === 'GAM_JEOM') { me.gam++; me.gamR++; me.points -= 1; opp.points += 1; }
+  else if (!miss) me.points += TMAP[tech].pts;
+  S.events.push({ round: S.round, time: at || fmt(S.roundTime), corner, tech, gam: gamType, loc, side, result: tech === 'GAM_JEOM' ? undefined : (miss ? 'MISS' : 'MADE') });
+  const label = tech === 'GAM_JEOM' ? `Gam-jeom: ${gamName(gamType)} (poin -1, lawan +1)`
+    : miss ? `${TMAP[tech].kor} (${TMAP[tech].ina}) <span class="miss-tag">MISS</span> (poin tidak bertambah)${loc ? ' [' + zName(loc) + ']' : ''}`
+    : `${TMAP[tech].kor} (${TMAP[tech].ina}) MADE +${TMAP[tech].pts}${loc ? ' [' + zName(loc) + ']' : ''}`;
+  addLog(`<b style="color:${COLOR[corner]}">${corner.toUpperCase()}</b>: ${label}`);
+  checkAuto();
+  render();
+}
+
+function checkAuto() {
+  if (S.status !== 'IN_PROGRESS') return;
+  for (const c of ['hong', 'chong']) {
+    if (S.sc[c].gam >= PRESET.maxGamjeomMatch) return endRound(other(c), `${PRESET.maxGamjeomMatch} gam-jeom dalam satu partai (diskualifikasi)`, true);
+    if (S.sc[c].gamR >= PRESET.maxGamjeomRound) return endRound(other(c), `${PRESET.maxGamjeomRound} gam-jeom dalam satu ronde (diskualifikasi)`, true);
+  }
+  const gap = PRESET.gap(S.round), diff = S.sc.hong.points - S.sc.chong.points;
+  if (Math.abs(diff) >= gap) endRound(diff > 0 ? 'hong' : 'chong', `Selisih poin ${gap}`);
+}
+
+function endRound(winner, reason, ends) {
+  if (S.status !== 'IN_PROGRESS') return; // cegah dobel
+  stopTimer();
+  closeHit();
+  S.awaitingTie = false;
+  S.rounds.push({ round: S.round, hong: S.sc.hong.points, chong: S.sc.chong.points, winner, reason });
+  S.sc[winner].wins++;
+  addLog(`<b>Ronde ${S.round} selesai:</b> ${esc(name(winner))} menang (${reason})`);
+  if (ends || S.sc[winner].wins >= PRESET.roundsToWin) {
+    S.status = 'COMPLETED'; S.winner = winner; S.winReason = reason;
+    S.banner = `PEMENANG PARTAI: ${winner.toUpperCase()} - ${name(winner).toUpperCase()}`;
+  } else {
+    S.round++;
+    S.sc.hong.points = 0; S.sc.chong.points = 0; S.sc.hong.gamR = 0; S.sc.chong.gamR = 0;
+    S.roundTime = PRESET.roundDuration;
+    S.banner = `Ronde ${S.round - 1} dimenangkan ${winner.toUpperCase()} (${reason}). Tekan Space untuk mulai ronde ${S.round}.`;
+  }
+}
+
+// ---------- IVR ----------
+function openIVR() {
+  if (S.status !== 'IN_PROGRESS' || S.awaitingTie || modalOpen()) return;
+  stopTimer(); render();
+  $('ivr-modal').style.display = 'flex';
+}
+function closeIVR() { $('ivr-modal').style.display = 'none'; }
+function processIVR(accepted) {
+  const c = $('ivr-applicant').value, cat = $('ivr-category').value, me = S.sc[c];
+  if (me.cards <= 0) return say('Kartu IVR pelatih ini sudah habis.');
+  if (accepted && cat === 'REVOKE_GAMJEOM' && me.gam <= 0) return say('Atlet ini belum punya gam-jeom.');
+  snap();
+  if (!accepted) {
+    me.cards--;
+    addLog(`<b>[IVR]</b> Protes ${c.toUpperCase()} DITOLAK (kartu hangus)`);
+  } else if (cat === 'HEAD_KICK' || cat === 'HEAD_SPIN') {
+    const id = cat === 'HEAD_SPIN' ? 'IVR_HEAD_SPIN' : 'IVR_HEAD';
+    me.points += TMAP[id].pts;
+    S.events.push({ round: S.round, time: fmt(S.roundTime), corner: c, tech: id });
+    addLog(`<b>[IVR]</b> Protes ${c.toUpperCase()} DITERIMA: ${TMAP[id].ina} +${TMAP[id].pts}`);
+  } else {
+    me.gam--; me.gamR = Math.max(0, me.gamR - 1); me.points += 1; S.sc[other(c)].points -= 1;
+    S.events.push({ round: S.round, time: fmt(S.roundTime), corner: c, tech: 'GAM_REVOKED' });
+    addLog(`<b>[IVR]</b> Protes ${c.toUpperCase()} DITERIMA: gam-jeom dibatalkan`);
+  }
+  closeIVR();
+  checkAuto();
+  render();
+}
+
+// ---------- STATISTIK ----------
+const cntMade = (c, t) => S.events.filter(e => e.corner === c && e.tech === t && e.result !== 'MISS').length;
+const cntMiss = (c, t) => S.events.filter(e => e.corner === c && e.tech === t && e.result === 'MISS').length;
+function statsHTML(cls) {
+  const rows = TECHS.map(t => `<tr><td style="text-align:left">${esc(t.kor)} <small>(${esc(t.ina)}) +${TMAP[t.id].pts}</small></td><td>${cntMade('hong', t.id)}</td><td>${cntMiss('hong', t.id)}</td><td>${cntMade('chong', t.id)}</td><td>${cntMiss('chong', t.id)}</td></tr>`);
+  ['IVR_HEAD', 'IVR_HEAD_SPIN'].forEach(id => rows.push(`<tr><td style="text-align:left">${esc(TMAP[id].kor)} <small>(${esc(TMAP[id].ina)}) +${TMAP[id].pts}</small></td><td>${cntMade('hong', id)}</td><td>-</td><td>${cntMade('chong', id)}</td><td>-</td></tr>`));
+  const tot = (c, f) => TECHS.reduce((a, t) => a + f(c, t.id), 0);
+  const acc = c => { const m = tot(c, cntMade), x = tot(c, cntMiss); return x + m ? Math.round(m / (m + x) * 100) + '%' : '-'; };
+  rows.push(`<tr style="font-weight:bold"><td style="text-align:left">Total serangan (tanpa IVR)</td><td>${tot('hong', cntMade)}</td><td>${tot('hong', cntMiss)}</td><td>${tot('chong', cntMade)}</td><td>${tot('chong', cntMiss)}</td></tr>`);
+  rows.push(`<tr style="font-weight:bold"><td style="text-align:left">Akurasi (masuk / total serangan)</td><td colspan="2">${acc('hong')}</td><td colspan="2">${acc('chong')}</td></tr>`);
+  rows.push(`<tr><td>Gam-jeom (total)</td><td colspan="2">${S.sc.hong.gam}</td><td colspan="2">${S.sc.chong.gam}</td></tr>`);
+  GAMTYPES.forEach(g => {
+    const n = c => S.events.filter(e => e.corner === c && e.tech === 'GAM_JEOM' && e.gam === g.id).length;
+    if (n('hong') || n('chong')) rows.push(`<tr><td style="text-align:left"><small>Gam-jeom: ${esc(g.ina)}</small></td><td colspan="2">${n('hong')}</td><td colspan="2">${n('chong')}</td></tr>`);
+  });
+  return `<table class="${cls}"><tr><th rowspan="2">Teknik</th><th colspan="2">Hong</th><th colspan="2">Chong</th></tr><tr><th>Masuk</th><th>Miss</th><th>Masuk</th><th>Miss</th></tr>${rows.join('')}</table>`;
+}
+function roundRows() {
+  const rows = S.rounds.map(r => ({ ...r }));
+  if (S.status === 'IN_PROGRESS') rows.push({ round: S.round, hong: S.sc.hong.points, chong: S.sc.chong.points, winner: null, reason: 'berjalan' });
+  return rows;
+}
+function roundsHTML(cls) {
+  const body = roundRows().map(r => `<tr><td>R${r.round}</td><td>${r.hong}</td><td>${r.chong}</td><td>${r.winner ? r.winner.toUpperCase() : '-'}</td><td>${esc(r.reason)}</td></tr>`).join('');
+  return `<table class="${cls}"><tr><th>Ronde</th><th>Hong</th><th>Chong</th><th>Menang</th><th>Alasan</th></tr>${body}</table>`;
+}
+
+// ---------- RENDER ----------
+function modalOpen() { return [...document.querySelectorAll('.modal-overlay')].some(m => m.style.display === 'flex'); }
+function render() {
+  const st = S.setup;
+  $('h-match').textContent = `PARTAI ${st.matchId} | ${st.mat.toUpperCase()} | ${st.cat}`;
+  for (const c of ['hong', 'chong']) {
+    $(c + '-name').textContent = st[c + 'Name'];
+    $(c + '-dojang').textContent = st[c + 'Dojang'];
+    $(c + '-score').textContent = String(S.sc[c].points).padStart(2, '0');
+    $('sb-' + c + '-score').textContent = String(S.sc[c].points).padStart(2, '0');
+    $('sb-' + c + '-name').textContent = st[c + 'Name'];
+    $(c + '-coach').textContent = `Coach: ${st[c + 'Coach']} (${st[c + 'CoachId']})`;
+    $(c + '-gamjeom').textContent = `${S.sc[c].gam} (ronde ini ${S.sc[c].gamR})`;
+    $(c + '-wins').textContent = S.sc[c].wins;
+    $(c + '-cards').textContent = S.sc[c].cards ? '🎴 '.repeat(S.sc[c].cards) : 'habis';
+  }
+  $('timer-display').textContent = fmt(S.roundTime);
+  $('timer-display').classList.toggle('paused', !S.running);
+  $('btn-timer').textContent = S.running ? '⏸' : '▶';
+  $('btn-time-edit').disabled = S.status !== 'IN_PROGRESS';
+  $('btn-score-edit').disabled = S.status !== 'IN_PROGRESS';
+  $('h-staff').textContent = session ? `Statistik: ${session.stat.name} | Caller: ${session.caller.name}` : '';
+  $('ivr-applicant').options[0].textContent = `Hong coach: ${st.hongCoach}`;
+  $('ivr-applicant').options[1].textContent = `Chong coach: ${st.chongCoach}`;
+  $('timer-state').textContent = S.status === 'COMPLETED' ? 'Selesai' : S.running ? 'Berjalan' : 'Berhenti';
+  $('round-label').textContent = S.status === 'COMPLETED' ? 'PARTAI SELESAI' : `RONDE ${S.round}`;
+  const b = $('banner');
+  b.textContent = S.banner;
+  b.className = 'banner' + (S.banner ? ' show' : '') + (S.status === 'COMPLETED' ? ' win' : '');
+  $('btn-timer').disabled = S.status !== 'IN_PROGRESS';
+  $('btn-ivr').disabled = S.status !== 'IN_PROGRESS';
+  $('btn-undo').disabled = undoStack.length === 0;
+  document.querySelectorAll('.tbtn').forEach(b => { b.disabled = !canScore(); });
+  $('log-box').innerHTML = S.log.length
+    ? S.log.map(l => `<div class="log-item">${l}</div>`).join('')
+    : '<div class="log-item" style="color:#8a99ad">Siap. Tekan Space untuk memulai timer.</div>';
+  $('rounds-box').innerHTML = roundsHTML('stat');
+  $('stats-box').innerHTML = statsHTML('stat');
+}
+
+// ---------- INPUT ----------
+window.addEventListener('keydown', e => {
+  if ($('login-modal').style.display === 'flex') { if (e.key === 'Enter') $('btn-login').click(); return; }
+  if (modalOpen()) {
+    if ($('hit-modal').style.display === 'flex' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'm') { e.preventDefault(); confirmHit('MADE'); return; }
+      if (k === 'n') { e.preventDefault(); confirmHit('MISS'); return; }
+      if (k === 'r' || k === 'l') { e.preventDefault(); setSide(k.toUpperCase()); return; }
+    }
+    if (e.key === 'Escape') {
+      if ($('hit-modal').style.display === 'flex') { closeHit(); render(); }
+      $('pdf-modal').style.display = 'none'; $('dlg-modal').style.display = 'none'; $('ev-modal').style.display = 'none'; dlgYes = null;
+      closeIVR();
+      $('setup-modal').style.display = 'none';
+      if ($('time-modal').style.display === 'flex') closeTime();
+      if ($('score-modal').style.display === 'flex') closeScore();
+      if ($('gam-modal').style.display === 'flex') closeGam();
+    }
+    return;
+  }
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (e.code === 'Space') { e.preventDefault(); toggleTimer(); return; }
+  if (e.code === 'F3') { e.preventDefault(); openIVR(); return; }
+});
+
+// Tombol teknik (klik, tanpa shortcut huruf)
+function buildActs() {
+  for (const c of ['hong', 'chong']) {
+    let h = '';
+    for (const g of GROUPS) {
+      h += `<div class="agroup"><h4>${g.title} (+${g.pts})</h4><div class="abtns">` +
+        TECHS.filter(t => t.g === g.id).map(t => `<button class="tbtn ${c}" data-c="${c}" data-t="${t.id}"><b>${t.kor}</b><small>${t.ina}</small></button>`).join('') +
+        '</div></div>';
+    }
+    h += `<div class="agroup"><h4>Pelanggaran</h4><div class="abtns"><button class="tbtn ${c} pen" data-c="${c}" data-t="GAM_JEOM"><b>Gam-jeom</b><small>Pilih jenis pelanggaran</small></button></div></div>`;
+    $('acts-' + c).innerHTML = h;
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tbtn');
+  if (!b) return;
+  if (b.dataset.t === 'GAM_JEOM') openGam(b.dataset.c); else openHit(b.dataset.c, b.dataset.t);
+});
+window.addEventListener('keyup', e => { if (e.code === 'Space') e.preventDefault(); });
+
+// tombol: lepas fokus setelah diklik supaya Space tidak memicu klik lagi
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
+
+$('btn-timer').addEventListener('click', toggleTimer);
+$('btn-ivr').addEventListener('click', openIVR);
+$('btn-undo').addEventListener('click', undo);
+$('btn-ivr-accept').addEventListener('click', () => processIVR(true));
+$('btn-ivr-reject').addEventListener('click', () => processIVR(false));
+$('btn-ivr-cancel').addEventListener('click', closeIVR);
+$('tie-hong').addEventListener('click', () => resolveTie('hong'));
+$('tie-chong').addEventListener('click', () => resolveTie('chong'));
+function resolveTie(w) {
+  snap();
+  $('tie-modal').style.display = 'none';
+  endRound(w, 'Seri, keputusan wasit');
+  render();
+}
+
+// Setup
+const FIELDS = { 's-event': 'event', 's-match': 'matchId', 's-mat': 'mat', 's-cat': 'cat', 's-hname': 'hongName', 's-hdojang': 'hongDojang', 's-hcoach': 'hongCoach', 's-hcoachid': 'hongCoachId', 's-cname': 'chongName', 's-cdojang': 'chongDojang', 's-ccoach': 'chongCoach', 's-ccoachid': 'chongCoachId' };
+$('btn-setup').addEventListener('click', () => {
+  if (modalOpen()) return;
+  stopTimer(); render();
+  for (const id in FIELDS) $(id).value = S.setup[FIELDS[id]];
+  $('setup-modal').style.display = 'flex';
+});
+$('btn-setup-cancel').addEventListener('click', () => { $('setup-modal').style.display = 'none'; });
+$('btn-setup-save').addEventListener('click', () => {
+  for (const id in FIELDS) S.setup[FIELDS[id]] = $(id).value.trim() || DEFAULT_SETUP[FIELDS[id]];
+  $('setup-modal').style.display = 'none';
+  render();
+});
+
+$('btn-reset').addEventListener('click', () => {
+  if (modalOpen()) return;
+  ask('Reset pertandingan? Semua skor, log, dan statistik akan dihapus.', () => {
+  stopTimer();
+  S = freshState(S.setup);
+  undoStack = [];
+  render();
+  });
+});
+
+// ---------- DATA KRONOLOGI PER SUDUT (dipakai cetak dan PDF) ----------
+const secs = t => { const [m, s2] = t.split(':').map(Number); return m * 60 + s2; };
+const evLabel = (e, c) => e.tech === 'MANUAL' ? ['Koreksi manual' + (e.note ? ': ' + e.note : ''), e.delta]
+  : e.tech === 'GAM_JEOM' ? (e.corner === c ? ['Gam-jeom: ' + gamName(e.gam), -1] : ['Poin dari gam-jeom lawan (' + gamName(e.gam) + ')', 1])
+  : e.tech === 'GAM_REVOKED' ? (e.corner === c ? ['Gam-jeom dibatalkan via IVR', 1] : ['Gam-jeom lawan dibatalkan via IVR', -1])
+  : e.result === 'MISS' ? [`${TMAP[e.tech].kor} (${TMAP[e.tech].ina})${e.loc ? ' @ ' + zName(e.loc) : ''} - MISS (tidak masuk)`, 0]
+  : [`${TMAP[e.tech].kor} (${TMAP[e.tech].ina})${e.loc ? ' @ ' + zName(e.loc) : ''}`, TMAP[e.tech].pts];
+function cornerRows(c) {
+  let total = 0;
+  const rows = S.events.filter(e => e.corner === c || e.tech === 'GAM_JEOM' || e.tech === 'GAM_REVOKED').map((e, i) => {
+    const [label, p] = evLabel(e, c);
+    total += p;
+    return { no: i + 1, round: e.round, time: e.time, el: fmt(PRESET.roundDuration - secs(e.time)), label, p, miss: e.result === 'MISS' && e.corner === c };
+  });
+  return { rows, total };
+}
+
+// ---------- PEMBUAT PDF (tanpa library, jalan offline) ----------
+const PDFK = (() => {
+  const PW = 595.28, PH = 841.89, MG = 32, FOOT = 26;
+  // lebar karakter Helvetica (ASCII 32-126), per 1000 unit
+  const REG = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  const BLD = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+  const tw = (t, size, bold) => { const tb = bold ? BLD : REG; let w = 0; for (const ch of String(t)) { const c = ch.charCodeAt(0); w += (c >= 32 && c <= 126 ? tb[c - 32] : 556); } return w * size / 1000; };
+  const SP = { 0x2018: 145, 0x2019: 146, 0x201C: 147, 0x201D: 148, 0x2013: 150, 0x2014: 151, 0x2022: 149, 0x2026: 133 };
+  const enc = t => {
+    let o = '';
+    for (const ch of String(t)) {
+      const cp = ch.codePointAt(0);
+      const c = SP[cp] || ((cp < 32 || cp > 255 || (cp >= 127 && cp < 160)) ? 63 : cp);
+      if (c === 92 || c === 40 || c === 41) o += '\\' + String.fromCharCode(c);
+      else if (c > 126 || c < 32) o += '\\' + c.toString(8).padStart(3, '0');
+      else o += String.fromCharCode(c);
+    }
+    return o;
+  };
+  const f = n => String(Math.round(n * 100) / 100);
+  const col = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => f(parseInt(h.substr(i, 2), 16) / 255)).join(' '); };
+  function wrap(t, w, size, bold) {
+    const out = [];
+    String(t).split('\n').forEach(par => {
+      let line = '';
+      par.split(' ').forEach(word0 => {
+        let word = word0;
+        while (word.length > 1 && tw(word, size, bold) > w) {
+          let k = word.length;
+          while (k > 1 && tw(word.slice(0, k), size, bold) > w) k--;
+          if (line) { out.push(line); line = ''; }
+          out.push(word.slice(0, k));
+          word = word.slice(k);
+        }
+        const trial = line ? line + ' ' + word : word;
+        if (line && tw(trial, size, bold) > w) { out.push(line); line = word; } else line = trial;
+      });
+      out.push(line);
+    });
+    return out;
+  }
+  function create() {
+    const pages = [];
+    let cur = null, y = MG;
+    const limit = PH - MG - FOOT;
+    const newPage = () => { cur = []; pages.push(cur); y = MG; };
+    newPage();
+    const ensure = h => { if (y + h > limit) newPage(); };
+    function text(t, x, top, size, o) {
+      o = o || {};
+      const bold = !!o.bold;
+      let px = x;
+      if (o.align === 'center') px = x + (o.w - tw(t, size, bold)) / 2;
+      else if (o.align === 'right') px = x + o.w - tw(t, size, bold);
+      const base = PH - (top + size * 1.3 / 2 + size * 0.36);
+      cur.push(`BT /${bold ? 'F2' : 'F1'} ${f(size)} Tf ${col(o.color || '#000000')} rg ${f(px)} ${f(base)} Td (${enc(t)}) Tj ET`);
+    }
+    function box(x, top, w, h, fill, lw) {
+      if (fill) cur.push(`${col(fill)} rg ${f(x)} ${f(PH - top - h)} ${f(w)} ${f(h)} re f`);
+      cur.push(`${f(lw || 0.5)} w 0 0 0 RG ${f(x)} ${f(PH - top - h)} ${f(w)} ${f(h)} re S`);
+    }
+    function table(o) {
+      const size = o.size || 8.5, pad = 3.5, lh = size * 1.3;
+      const CW = PW - 2 * MG, sum = o.cols.reduce((a, b) => a + b, 0);
+      const xs = [MG]; o.cols.forEach(c => xs.push(xs[xs.length - 1] + c / sum * CW));
+      const aligns = o.align || [];
+      const norm = c => (typeof c === 'object' && c !== null) ? c : { t: String(c) };
+      const layout = (cells, ro) => {
+        let ci = 0, h = 0; const items = [];
+        cells.forEach(c0 => {
+          const c = norm(c0), span = c.span || 1;
+          const x = xs[ci], w = xs[ci + span] - xs[ci];
+          const bold = c.bold !== undefined ? c.bold : !!ro.bold;
+          const lines = wrap(c.t, w - 2 * pad, size, bold);
+          h = Math.max(h, lines.length * lh + 2 * pad);
+          items.push({ x, w, lines, bold, fill: c.fill || ro.fill, color: c.color || ro.color, align: c.align || aligns[ci] || 'center' });
+          ci += span;
+        });
+        return { items, h };
+      };
+      const draw = L => {
+        L.items.forEach(it => {
+          box(it.x, y, it.w, L.h, it.fill);
+          it.lines.forEach((ln, i) => text(ln, it.x + pad, y + pad + i * lh, size, { bold: it.bold, color: it.color, align: it.align, w: it.w - 2 * pad }));
+        });
+        y += L.h;
+      };
+      const headL = (o.head || []).map(r => layout(r, { bold: true, fill: '#eeeeee' }));
+      const headH = headL.reduce((a, L) => a + L.h, 0);
+      if (!o.rows.length) { ensure(headH); headL.forEach(draw); return; }
+      o.rows.forEach((r, i) => {
+        const L = layout(r.cells, r);
+        if (i === 0) { ensure(headH + L.h); headL.forEach(draw); }
+        else if (y + L.h > limit) { newPage(); headL.forEach(draw); }
+        draw(L);
+      });
+    }
+    let img = null;
+    function image(L, x, top, w, h) { img = L; cur.push(`q ${f(w)} 0 0 ${f(h)} ${f(x)} ${f(PH - top - h)} cm /Im1 Do Q`); }
+    function circle(cx, top, r, fill) {
+      const cy = PH - top, k = r * .5523, F = f;
+      cur.push(`${col(fill)} rg 0.4 w 0 0 0 RG ${F(cx + r)} ${F(cy)} m ${F(cx + r)} ${F(cy + k)} ${F(cx + k)} ${F(cy + r)} ${F(cx)} ${F(cy + r)} c ${F(cx - k)} ${F(cy + r)} ${F(cx - r)} ${F(cy + k)} ${F(cx - r)} ${F(cy)} c ${F(cx - r)} ${F(cy - k)} ${F(cx - k)} ${F(cy - r)} ${F(cx)} ${F(cy - r)} c ${F(cx + k)} ${F(cy - r)} ${F(cx + r)} ${F(cy - k)} ${F(cx + r)} ${F(cy)} c B`);
+    }
+    const PT = (x, top) => `${f(x)} ${f(PH - top)}`;
+    const polyOps = pts => pts.map((q, i) => `${PT(q[0], q[1])} ${i ? 'l' : 'm'}`).join(' ') + ' h';
+    const ellOps = (cx, top, rx, ry) => { const cy = PH - top, k = .5523; return `${f(cx + rx)} ${f(cy)} m ${f(cx + rx)} ${f(cy + k * ry)} ${f(cx + k * rx)} ${f(cy + ry)} ${f(cx)} ${f(cy + ry)} c ${f(cx - k * rx)} ${f(cy + ry)} ${f(cx - rx)} ${f(cy + k * ry)} ${f(cx - rx)} ${f(cy)} c ${f(cx - rx)} ${f(cy - k * ry)} ${f(cx - k * rx)} ${f(cy - ry)} ${f(cx)} ${f(cy - ry)} c ${f(cx + k * rx)} ${f(cy - ry)} ${f(cx + rx)} ${f(cy - k * ry)} ${f(cx + rx)} ${f(cy)} c h`; };
+    const clipFill = (rx, rtop, rw, rh, ops, fill) => cur.push(`q ${f(rx)} ${f(PH - rtop - rh)} ${f(rw)} ${f(rh)} re W n ${col(fill)} rg ${ops} f Q`);
+    const outline = (ops, lw) => cur.push(`${f(lw || .8)} w 0 0 0 RG ${ops} S`);
+    const line = (x1, t1, x2, t2) => cur.push(`q [2 2] 0 d 0.4 w 0.45 0.45 0.45 RG ${PT(x1, t1)} m ${PT(x2, t2)} l S Q`);
+    function build(title, footL) {
+      const n = pages.length;
+      pages.forEach((ops, i) => {
+        cur = ops;
+        const fy = PH - MG - FOOT + 10;
+        text(footL, MG, fy, 7.5, { color: '#555555' });
+        text(`Halaman ${i + 1} / ${n}`, MG, fy, 7.5, { color: '#555555', align: 'right', w: PW - 2 * MG });
+      });
+      const objs = [null];
+      objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+      objs[2] = `<< /Type /Pages /Kids [${pages.map((_, i) => `${5 + 2 * i} 0 R`).join(' ')}] /Count ${n} >>`;
+      objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+      objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+      pages.forEach((ops, i) => {
+        const st = ops.join('\n');
+        objs[5 + 2 * i] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(PW)} ${f(PH)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${img ? ` /XObject << /Im1 ${6 + 2 * n} 0 R >>` : ''} >> /Contents ${6 + 2 * i} 0 R >>`;
+        objs[6 + 2 * i] = `<< /Length ${st.length} >>\nstream\n${st}\nendstream`;
+      });
+      const infoId = 5 + 2 * n;
+      objs[infoId] = `<< /Title (${enc(title)}) /Creator (TKD Scoring Suite) >>`;
+      if (img) {
+        let bin = '';
+        for (let i = 0; i < img.bytes.length; i++) bin += String.fromCharCode(img.bytes[i]);
+        objs[infoId + 1] = `<< /Type /XObject /Subtype /Image /Width ${img.w} /Height ${img.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bin.length} >>\nstream\n${bin}\nendstream`;
+      }
+      let out = '%PDF-1.4\n';
+      const off = [];
+      for (let i = 1; i < objs.length; i++) { off[i] = out.length; out += `${i} 0 obj\n${objs[i]}\nendobj\n`; }
+      const xr = out.length;
+      out += `xref\n0 ${objs.length}\n0000000000 65535 f \n` + off.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+      out += `trailer\n<< /Size ${objs.length} /Root 1 0 R /Info ${infoId} 0 R >>\nstartxref\n${xr}\n%%EOF`;
+      const bytes = new Uint8Array(out.length);
+      for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+      return bytes;
+    }
+    return { text, box, table, ensure, build, image, circle, polyOps, ellOps, clipFill, outline, line, get y() { return y; }, set y(v) { y = v; }, W: PW - 2 * MG, X: MG };
+  }
+  return { create, tw, wrap };
+})();
+
+function buildScoresheetPDF() {
+  const st = S.setup, d = PDFK.create();
+  const tot = c => roundRows().reduce((a, r) => a + r[c], 0);
+  const winner = S.winner ? `${S.winner.toUpperCase()} - ${name(S.winner)} (${S.winReason})` : 'PARTAI BELUM SELESAI';
+  const RED = '#fecaca', BLUE = '#bfdbfe', MISSBG = '#fef3c7';
+  const label = t => { d.ensure(80); d.y += 10; d.text(t, d.X, d.y, 10, { bold: true }); d.y += 15; };
+
+  const top0 = d.y;
+  if (LOGO) { const k = Math.min(56 / LOGO.w, 56 / LOGO.h); d.image(LOGO, d.X, top0, LOGO.w * k, LOGO.h * k); }
+  const cx = d.X + 140, cw = d.W - 280;
+  let ty = top0 + 6;
+  PDFK.wrap(st.event, cw, 14, true).forEach(l => { d.text(l, cx, ty, 14, { bold: true, align: 'center', w: cw }); ty += 18; });
+  d.text('STATISTIK PERTANDINGAN TAEKWONDO', cx, ty + 2, 8.5, { align: 'center', w: cw });
+  let ry = top0 + 4;
+  const dt = st.date ? new Date(st.date + 'T00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  PDFK.wrap(st.addr || '', 130, 7.5, false).concat(dt ? [dt] : []).forEach(l => { if (l) { d.text(l, d.X + d.W - 130, ry, 7.5, { align: 'right', w: 130 }); ry += 10; } });
+  d.y = top0 + 66; d.box(d.X, d.y, d.W, 0.01, null, 1.2); d.y += 10;
+  d.text(`${st.hongName} (HONG)   ${tot('hong')} - ${tot('chong')}   ${st.chongName} (CHONG)`, d.X, d.y, 11, { bold: true, align: 'center', w: d.W }); d.y += 15;
+  d.text(`(${roundRows().map(r => r.hong + '-' + r.chong).join(', ')})  |  ${st.cat}`, d.X, d.y, 8.5, { align: 'center', w: d.W }); d.y += 16;
+  d.table({ cols: [1, 1, 1.4, 1], align: ['left', 'left', 'left', 'left'], rows: [{ cells: [`ID partai: ${st.matchId}`, `Lapangan: ${st.mat}`, `Kategori: ${st.cat}`, 'Format: Best of 3'] }] });
+  d.y += 10;
+  d.table({
+    cols: [0.8, 1.5, 1.9, 1.9, 0.8, 0.8, 0.9], align: ['center', 'left', 'left', 'left', 'center', 'center', 'center'],
+    head: [['Sudut', 'Atlet', 'Dojang', 'Coach', 'Total poin', 'Gam-jeom', 'Ronde menang']],
+    rows: ['hong', 'chong'].map(c => ({ cells: [{ t: c.toUpperCase(), bold: true, fill: c === 'hong' ? RED : BLUE }, st[c + 'Name'], st[c + 'Dojang'], `${st[c + 'Coach']} (${st[c + 'CoachId']})`, tot(c), S.sc[c].gam, S.sc[c].wins] }))
+  });
+
+  label('Hasil per ronde');
+  d.table({
+    cols: [0.8, 0.8, 0.8, 1, 3.4], align: ['center', 'center', 'center', 'center', 'left'],
+    head: [['Ronde', 'Hong', 'Chong', 'Menang', 'Alasan']],
+    rows: roundRows().map(r => ({ cells: [`R${r.round}`, r.hong, r.chong, r.winner ? r.winner.toUpperCase() : '-', r.reason] }))
+  });
+
+  { const rr = roundRows(); let ah = 0, ac = 0; const cum = rr.map(r => { ah += r.hong; ac += r.chong; return { hong: ah, chong: ac }; });
+    label('Skor per ronde dan kumulatif');
+    d.table({ cols: [1.2, ...rr.flatMap(() => [1, 1])], head: [['Sudut', ...rr.map(r => ({ t: 'Ronde ' + r.round, span: 2 }))], ['', ...rr.flatMap(() => ['Skor', 'Kumulatif'])]],
+      rows: ['hong', 'chong'].map(c => ({ cells: [{ t: c.toUpperCase(), bold: true, fill: c === 'hong' ? RED : BLUE }, ...rr.flatMap((r, i) => [r[c], cum[i][c]])] })) }); }
+  ['hong', 'chong'].forEach(c => {
+    const { rows, total } = cornerRows(c), red = c === 'hong';
+    d.y += 12;
+    d.table({
+      cols: [0.5, 0.7, 1, 1.1, 4.4, 0.7], align: ['center', 'center', 'center', 'center', 'left', 'center'],
+      head: [
+        [{ t: `${red ? 'SUDUT MERAH (HONG)' : 'SUDUT BIRU (CHONG)'}: ${st[c + 'Name']} | ${st[c + 'Dojang']} | Coach: ${st[c + 'Coach']}`, span: 6, align: 'left', fill: red ? RED : BLUE }],
+        ['No', 'Ronde', 'Sisa waktu', 'Waktu berjalan', 'Teknik / kejadian', 'Poin']
+      ],
+      rows: (rows.length ? rows.map(r => ({ fill: r.miss ? MISSBG : undefined, cells: [r.no, `R${r.round}`, r.time, r.el, r.label, r.p > 0 ? '+' + r.p : String(r.p)] }))
+        : [{ cells: [{ t: 'Belum ada kejadian', span: 6 }] }]).concat([{ bold: true, cells: [{ t: 'Total poin', span: 5, align: 'right' }, total] }])
+    });
+  });
+
+  const pct = (m, n) => (n ? Math.round(m / n * 100) + '%' : '-');
+  const RS = roundRows().map(r => r.round);
+  const attOf = (c, r) => S.events.filter(e => e.corner === c && e.result && (r === 'all' || e.round === r));
+  const catOf = t => { const g = gOf(t); return g === 'PUNCH' ? 'PUNCH' : /^BODY/.test(g) ? 'BODY' : /^HEAD/.test(g) ? 'HEAD' : null; };
+  label('Ringkasan serangan per ronde');
+  const sumRows = [];
+  RS.concat(['all']).forEach(r => ['hong', 'chong'].forEach(c => {
+    const ev = attOf(c, r), g = (cat) => { const x = ev.filter(e => catOf(e.tech) === cat), m = x.filter(e => e.result === 'MADE').length; return [`${m}/${x.length}`, pct(m, x.length)]; };
+    const all = ev.filter(e => catOf(e.tech)), m = all.filter(e => e.result === 'MADE').length;
+    const pts = r === 'all' ? tot(c) : roundRows().find(q => q.round === r)[c];
+    const gam = S.events.filter(e => e.tech === 'GAM_JEOM' && e.corner === c && (r === 'all' || e.round === r)).length;
+    sumRows.push({ bold: r === 'all', cells: [r === 'all' ? 'Total' : 'R' + r, { t: c.toUpperCase(), fill: c === 'hong' ? RED : BLUE }, pts, ...g('PUNCH'), ...g('BODY'), ...g('HEAD'), `${m}/${all.length}`, pct(m, all.length), gam] });
+  }));
+  d.table({ size: 7.5, cols: [.8, .9, .7, .9, .7, .9, .7, .9, .7, .9, .7, .7],
+    head: [['Ronde', 'Sudut', 'Poin', { t: 'Pukulan', span: 2 }, { t: 'T. badan', span: 2 }, { t: 'T. kepala', span: 2 }, { t: 'Total serangan', span: 2 }, 'Gam'], ['', '', '', 'M/C', '%', 'M/C', '%', 'M/C', '%', 'M/C', '%', '']], rows: sumRows });
+  const mix = (hex, t) => '#' + [1, 3, 5].map(i => Math.round(255 - (255 - parseInt(hex.substr(i, 2), 16)) * t).toString(16).padStart(2, '0')).join('');
+  const zStats = (evs, k) => { const z = {}; ZONES[k].forEach(q => { z[q[0]] = { n: 0, m: 0 }; }); let n = 0; evs.forEach(e => { if (e.loc && kindOf(e.tech) === k) { z[e.loc.z].n++; n++; if (e.result === 'MADE') z[e.loc.z].m++; } }); return { z, n }; };
+  const mapBlock = (x, top, c, r) => {
+    const evs = attOf(c, r), base = c === 'hong' ? '#ef4444' : '#3b82f6';
+    d.box(x, top, 258, 13, c === 'hong' ? RED : BLUE); d.text(`${c.toUpperCase()}: ${st[c + 'Name']}`, x + 4, top + 1, 8, { bold: true });
+    const gy = top + 20; let ly = gy;
+    [['body', x + 2, 62, 92], ['head', x + 72, 54, 70]].forEach(([k, gx, gw, hh]) => {
+      const { z, n } = zStats(evs, k), pt = (fx, fy) => [gx + fx * gw, gy + fy * hh];
+      const ops = k === 'body' ? d.polyOps([[.12, 0], [.88, 0], [1, .2], [.94, 1], [.06, 1], [0, .2]].map(q => pt(q[0], q[1]))) : d.ellOps(gx + gw / 2, gy + hh / 2, gw / 2, hh / 2);
+      ZR[k].forEach(([id, fx, fy, fw, fh]) => {
+        d.clipFill(gx + fx * gw, gy + fy * hh, fw * gw, fh * hh, ops, mix(base, z[id].n ? .15 + .85 * z[id].n / n : 0));
+        if (z[id].n) d.text(pct(z[id].n, n), gx + fx * gw, gy + (fy + fh / 2) * hh - 4, 6.5, { bold: true, align: 'center', w: fw * gw });
+      });
+      d.outline(ops, .8);
+      const y0 = k === 'body' ? 0 : .2;
+      [.25, .75].forEach(q => { const a = pt(q, y0), b = pt(q, 1); d.line(a[0], a[1], b[0], b[1]); });
+      if (k === 'body') { const a = pt(.25, .5), b = pt(.75, .5); d.line(a[0], a[1], b[0], b[1]); } else { const a = pt(0, .2), b = pt(1, .2); d.line(a[0], a[1], b[0], b[1]); }
+      evs.forEach(e => { if (e.loc && kindOf(e.tech) === k) d.circle(gx + e.loc.x * gw, gy + e.loc.y * hh, 1.8, e.result === 'MADE' ? '#111111' : '#ffffff'); });
+      d.text(k === 'body' ? 'Body protector' : 'Head protector', gx, gy + hh + 2, 6.5, { bold: true });
+      d.text(`${n} serangan tercatat`, gx, gy + hh + 10, 6, { color: '#555555' });
+      d.text(k === 'body' ? 'BODY PROTECTOR' : 'HEAD PROTECTOR', x + 132, ly, 6.5, { bold: true }); ly += 9.5;
+      ZONES[k].forEach(([id, nm]) => { d.text(`${nm}: ${z[id].m}/${z[id].n} (${pct(z[id].m, z[id].n)}), porsi ${pct(z[id].n, n)}`, x + 132, ly, 6.5); ly += 9.5; });
+      ly += 3;
+    });
+  };
+  label('Peta body protector dan head protector per ronde');
+  d.text('Persen = porsi serangan yang kena zona itu. Titik hitam = MADE, titik putih = MISS. Punggung dan area lain tidak dinilai.', d.X, d.y - 2, 7, { color: '#555555' }); d.y += 12;
+  RS.concat(['all']).forEach(r => {
+    d.ensure(165);
+    d.text(r === 'all' ? 'Total partai' : 'Ronde ' + r, d.X, d.y, 8.5, { bold: true }); d.y += 13;
+    mapBlock(d.X, d.y, 'hong', r); mapBlock(d.X + 265, d.y, 'chong', r); d.y += 146;
+  });
+  label('Rincian sasaran dan teknik (masuk / dilancarkan, akurasi)');
+  const zrows = [];
+  ['body', 'head'].forEach(k => ZONES[k].forEach(([id, nm]) => TECHS.forEach(t => {
+    if (kindOf(t.id) !== k) return;
+    const a2 = c => S.events.filter(e => e.corner === c && e.tech === t.id && e.loc && e.loc.z === id), h = a2('hong'), b2 = a2('chong'), mm = x => x.filter(e => e.result === 'MADE').length;
+    if (h.length || b2.length) zrows.push({ cells: [{ t: nm, align: 'left' }, { t: t.kor, align: 'left' }, `${mm(h)}/${h.length}`, pct(mm(h), h.length), `${mm(b2)}/${b2.length}`, pct(mm(b2), b2.length)] });
+  })));
+  if (!zrows.length) zrows.push({ cells: [{ t: 'Belum ada lokasi serangan tercatat', span: 6 }] });
+  d.table({ cols: [2, 2.6, 1, 1, 1, 1], head: [['Sasaran', 'Teknik', { t: 'HONG M/C', span: 1, fill: RED }, { t: '%', fill: RED }, { t: 'CHONG M/C', fill: BLUE }, { t: '%', fill: BLUE }]], rows: zrows });
+
+  label('Distribusi teknik per sasaran (porsi tiap teknik yang MADE per zona body / head protector)');
+  ['hong', 'chong'].forEach(c => ['body', 'head'].forEach(k => {
+    const zs = ZONES[k], rows = [];
+    TECHS.filter(t => kindOf(t.id) === k).forEach(t => {
+      const ev = S.events.filter(e => e.corner === c && e.tech === t.id && e.result === 'MADE' && e.loc), n = ev.length;
+      if (!n) return;
+      rows.push({ cells: [{ t: `${t.kor} (${t.ina})`, align: 'left' }, n, ...zs.map(([id]) => { const q = ev.filter(e => e.loc.z === id).length; return q ? `${q} (${pct(q, n)})` : '-'; })] });
+    });
+    if (!rows.length) return;
+    d.y += 6;
+    d.table({ size: 7.5, cols: [3, .7, ...zs.map(() => 1.2)], align: ['left'], head: [[{ t: `${c.toUpperCase()} - ${k === 'body' ? 'Body protector' : 'Head protector'}`, span: 2 + zs.length, align: 'left', fill: c === 'hong' ? RED : BLUE }], ['Teknik', 'Masuk', ...zs.map(q => q[1])]], rows });
+  }));
+
+  label('Rekap teknik');
+  const TT = { hong: attOf('hong', 'all').length, chong: attOf('chong', 'all').length };
+  const c4 = (c, id) => { const m = cntMade(c, id), x = cntMiss(c, id); return [m, x, pct(m, m + x), pct(m + x, TT[c])]; };
+  const srows = TECHS.map(t => ({ cells: [{ t: `${t.kor} (${t.ina}) +${TMAP[t.id].pts}`, align: 'left' }, ...c4('hong', t.id), ...c4('chong', t.id)] }));
+  ['IVR_HEAD', 'IVR_HEAD_SPIN'].forEach(id => srows.push({ cells: [{ t: `${TMAP[id].kor} (${TMAP[id].ina}) +${TMAP[id].pts}`, align: 'left' }, cntMade('hong', id), '-', '-', '-', cntMade('chong', id), '-', '-', '-'] }));
+  const tm = (c, f) => TECHS.reduce((a2, t) => a2 + f(c, t.id), 0);
+  srows.push({ bold: true, cells: [{ t: 'Total serangan (tanpa IVR)', align: 'left' }, ...['hong', 'chong'].flatMap(c => [tm(c, cntMade), tm(c, cntMiss), pct(tm(c, cntMade), TT[c]), TT[c] ? '100%' : '-'])] });
+  srows.push({ cells: [{ t: 'Gam-jeom (total)', align: 'left' }, { t: S.sc.hong.gam, span: 4 }, { t: S.sc.chong.gam, span: 4 }] });
+  GAMTYPES.forEach(g => {
+    const n = c => S.events.filter(e => e.corner === c && e.tech === 'GAM_JEOM' && e.gam === g.id).length;
+    if (n('hong') || n('chong')) srows.push({ cells: [{ t: 'Gam-jeom: ' + g.ina, align: 'left' }, { t: n('hong'), span: 4 }, { t: n('chong'), span: 4 }] });
+  });
+  d.table({ size: 8, cols: [3.8, .8, .8, .9, .9, .8, .8, .9, .9], align: ['left'],
+    head: [['', { t: 'HONG', span: 4, fill: RED }, { t: 'CHONG', span: 4, fill: BLUE }], ['Teknik', 'Masuk', 'Miss', 'Akurasi', 'Porsi', 'Masuk', 'Miss', 'Akurasi', 'Porsi']], rows: srows });
+
+  label('Dominasi sisi kanan / kiri (kaki atau tangan penyerang)');
+  const sideOf = (c, cat) => attOf(c, 'all').filter(e => catOf(e.tech) && (!cat || catOf(e.tech) === cat) && e.side);
+  const dRows = [];
+  [['PUNCH', 'Pukulan'], ['BODY', 'Tendangan badan'], ['HEAD', 'Tendangan kepala'], [null, 'Total']].forEach(([cat, lb]) => ['hong', 'chong'].forEach(c => {
+    const a = sideOf(c, cat), R = a.filter(e => e.side === 'R'), L = a.filter(e => e.side === 'L'), mm = x => x.filter(e => e.result === 'MADE').length;
+    dRows.push({ bold: !cat, cells: [lb, { t: c.toUpperCase(), fill: c === 'hong' ? RED : BLUE }, `${mm(R)}/${R.length}`, pct(mm(R), R.length), `${mm(L)}/${L.length}`, pct(mm(L), L.length), a.length ? `${pct(R.length, a.length)} kanan - ${100 - Math.round(R.length / a.length * 100)}% kiri` : '-'] });
+  }));
+  d.table({ cols: [1.6, .9, .9, .8, .9, .8, 2.2], head: [['Kategori', 'Sudut', 'Kanan M/C', '%', 'Kiri M/C', '%', 'Dominasi (porsi serangan)']], rows: dRows });
+
+  label('Jalannya partai');
+  const dOf = e => { const r = { hong: 0, chong: 0 }, o = other(e.corner);
+    if (e.tech === 'GAM_JEOM') { r[e.corner]--; r[o]++; } else if (e.tech === 'GAM_REVOKED') { r[e.corner]++; r[o]--; }
+    else if (e.tech === 'MANUAL') r[e.corner] += e.delta || 0; else if (e.result !== 'MISS' && TMAP[e.tech]) r[e.corner] += TMAP[e.tech].pts;
+    return r; };
+  const nm = c => st[c + 'Name'];
+  const lrows = RS.map(r => {
+    let h = 0, c = 0, mh = [0, ''], mc = [0, ''], last = null, chg = 0;
+    S.events.filter(e => e.round === r).forEach(e => {
+      const x = dOf(e); h += x.hong; c += x.chong;
+      const df = h - c, el = fmt(PRESET.roundDuration - secs(e.time));
+      if (df > mh[0]) mh = [df, el]; if (-df > mc[0]) mc = [-df, el];
+      const ld = df > 0 ? 'hong' : df < 0 ? 'chong' : null;
+      if (ld) { if (last && ld !== last) chg++; last = ld; }
+    });
+    const q = roundRows().find(z => z.round === r);
+    return { cells: ['R' + r, mh[0] ? `${mh[0]} poin (menit ${mh[1]})` : '-', mc[0] ? `${mc[0]} poin (menit ${mc[1]})` : '-', chg, `${q.hong} - ${q.chong}`] };
+  });
+  d.table({ cols: [.8, 2, 2, 1.4, 1], head: [['Ronde', { t: 'Keunggulan terbesar HONG', fill: RED }, { t: 'Keunggulan terbesar CHONG', fill: BLUE }, 'Pergantian pimpinan', 'Skor akhir']], rows: lrows });
+
+  label('Analisis pertandingan');
+  const P = [], th = tot('hong'), tc = tot('chong'), ldr = th === tc ? null : th > tc ? 'hong' : 'chong';
+  P.push(ldr ? `${nm(ldr)} (${ldr === 'hong' ? 'merah' : 'biru'}) unggul ${Math.max(th, tc)} : ${Math.min(th, tc)}, selisih ${Math.abs(th - tc)} poin.` : `Skor imbang ${th} : ${tc}.`);
+  ['hong', 'chong'].forEach(c => {
+    const a = attOf(c, 'all').filter(e => catOf(e.tech)), m = a.filter(e => e.result === 'MADE').length;
+    P.push(`${nm(c)} melepas ${a.length} serangan, ${m} masuk (akurasi ${pct(m, a.length)}).`);
+    const pts = { HEAD: 0, BODY: 0, PUNCH: 0 };
+    S.events.forEach(e => { const kk = TMAP[e.tech] && e.corner === c && e.result !== 'MISS' ? (catOf(e.tech) || (/^IVR/.test(e.tech) ? 'HEAD' : null)) : null; if (kk) pts[kk] += TMAP[e.tech].pts; });
+    const sm = pts.HEAD + pts.BODY + pts.PUNCH;
+    if (sm) P.push(`Sumber poin ${nm(c)}: tendangan kepala ${pts.HEAD} (${pct(pts.HEAD, sm)}), tendangan badan ${pts.BODY} (${pct(pts.BODY, sm)}), pukulan ${pts.PUNCH} (${pct(pts.PUNCH, sm)}).`);
+    const tp = TECHS.map(t => ({ t, n: cntMade(c, t.id) + cntMiss(c, t.id), m: cntMade(c, t.id) })).filter(x => x.n).sort((x, y) => y.n - x.n)[0];
+    if (tp) P.push(`Teknik terbanyak ${nm(c)}: ${tp.t.kor} (${tp.n}x, ${pct(tp.m, tp.n)} masuk).`);
+    const lc = attOf(c, 'all').filter(e => e.loc), zc = {};
+    lc.forEach(e => { zc[e.loc.z] = (zc[e.loc.z] || 0) + 1; });
+    const zt = Object.entries(zc).sort((x, y) => y[1] - x[1])[0];
+    if (zt) P.push(`Sasaran terbanyak ${nm(c)}: ${zName({ z: zt[0] })} (${pct(zt[1], lc.length)} dari serangan yang tercatat lokasinya).`);
+    const sd2 = sideOf(c, null), sr = sd2.filter(e => e.side === 'R').length;
+    if (sd2.length) P.push(`Dominasi ${nm(c)}: ${pct(sr, sd2.length)} sisi kanan, ${100 - Math.round(sr / sd2.length * 100)}% sisi kiri (dari ${sd2.length} serangan yang tercatat sisinya).`);
+    const gm = S.events.filter(e => e.tech === 'GAM_JEOM' && e.corner === c);
+    if (gm.length) P.push(`${nm(c)} menerima ${gm.length} gam-jeom (${[...new Set(gm.map(e => gamName(e.gam)))].join(', ')}).`);
+  });
+  const tch = lrows.reduce((a, r) => a + r.cells[3], 0);
+  P.push(`Pimpinan skor berganti ${tch} kali sepanjang partai.`);
+  P.forEach(t => { const ls = PDFK.wrap('- ' + t, d.W - 8, 8.5, false); d.ensure(ls.length * 11 + 4); ls.forEach((l, i) => { d.text(l, d.X + 4 + (i ? 6 : 0), d.y, 8.5); d.y += 11; }); d.y += 3; });
+
+  d.ensure(130);
+  d.y += 14;
+  d.box(d.X, d.y, d.W, 30, '#fef08a', 1.2);
+  d.text('PEMENANG PARTAI: ' + winner, d.X, d.y + 6, 11, { bold: true, align: 'center', w: d.W });
+  d.y += 30 + 26;
+  const sy = d.y;
+  d.text('Dicetak: ' + new Date().toLocaleString('id-ID'), d.X, sy, 8);
+  d.text('Petugas statistik: ' + (session ? session.stat.name : '-'), d.X, sy + 12, 8);
+  d.text('Caller: ' + (session ? session.caller.name : '-'), d.X, sy + 24, 8);
+  [['Wasit utama', d.X + d.W - 300], ['Match chairman', d.X + d.W - 150]].forEach(([lb, x]) => {
+    d.text('', x, sy, 8);
+    d.box(x, sy + 34, 140, 0.01);
+    d.text(lb, x, sy + 38, 8, { align: 'center', w: 140 });
+  });
+  return d.build(`Scoresheet ${st.matchId}: ${st.hongName} vs ${st.chongName}`, `TKD Scoring Suite | Partai ${st.matchId} | ${st.hongName} vs ${st.chongName}`);
+}
+let LOGO = null;
+function openEv() {
+  $('ev-name').value = S.setup.event; $('ev-addr').value = S.setup.addr || ''; $('ev-date').value = S.setup.date || '';
+  $('ev-modal').style.display = 'flex';
+}
+$('ev-logo').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const im = new Image();
+  im.onload = () => {
+    const k = Math.min(1, 300 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+    const u = c.toDataURL('image/jpeg', .9), b = atob(u.split(',')[1]), a = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+    LOGO = { bytes: a, w: c.width, h: c.height }; try { sessionStorage.setItem('tkd_logo', u); } catch (x) { }
+    $('ev-prev').src = u; $('ev-prev').style.display = 'block';
+  };
+  im.src = URL.createObjectURL(f);
+});
+$('ev-save').addEventListener('click', () => {
+  S.setup.event = $('ev-name').value.trim() || DEFAULT_SETUP.event; S.setup.addr = $('ev-addr').value.trim(); S.setup.date = $('ev-date').value;
+  $('ev-modal').style.display = 'none'; render();
+  try { sessionStorage.setItem('tkd_event', JSON.stringify({ event: S.setup.event, addr: S.setup.addr, date: S.setup.date })); } catch (x) { }
+});
+$('ev-skip').addEventListener('click', () => { $('ev-modal').style.display = 'none'; render(); });
+$('btn-event').addEventListener('click', () => { if (!modalOpen()) openEv(); });
+let pdfUrl = null;
+function showPdf(auto) {
+  if (modalOpen()) return;
+  let bytes;
+  try { bytes = buildScoresheetPDF(); } catch (err) { return say('Gagal membuat PDF: ' + err.message); }
+  const safe = x => String(x).replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || 'x';
+  const fname = `Scoresheet_${safe(S.setup.matchId)}_${safe(S.setup.hongName)}_vs_${safe(S.setup.chongName)}.pdf`;
+  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+  pdfUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  $('pdf-dl').href = pdfUrl; $('pdf-dl').setAttribute('download', fname);
+  $('pdf-open').href = pdfUrl;
+  $('pdf-name').textContent = fname;
+  $('pdf-modal').style.display = 'flex';
+  if (auto) { try { $('pdf-dl').click(); } catch (err) { /* tombol manual tetap tersedia */ } }
+}
+$('btn-pdf').addEventListener('click', () => showPdf(true));
+$('pdf-close').addEventListener('click', () => { $('pdf-modal').style.display = 'none'; });
+
+// Cetak scoresheet
+$('btn-print').addEventListener('click', () => {
+  showPdf(false);
+  return;
+  const st = S.setup, tot = c => roundRows().reduce((a, r) => a + r[c], 0);
+  const winner = S.winner ? `${S.winner.toUpperCase()} - ${esc(name(S.winner))} (${esc(S.winReason)})` : 'PARTAI BELUM SELESAI';
+  const corner = c => `<tr><td><b>${c.toUpperCase()}</b></td><td>${esc(st[c + 'Name'])}</td><td>${esc(st[c + 'Dojang'])}</td><td>${esc(st[c + 'Coach'])} (${esc(st[c + 'CoachId'])})</td><td>${tot(c)}</td><td>${S.sc[c].gam}</td><td>${S.sc[c].wins}</td></tr>`;
+  const cornerTable = c => {
+    const { rows, total } = cornerRows(c);
+    const body = rows.map(r => `<tr style="page-break-inside:avoid${r.miss ? ';background:#fef3c7' : ''}"><td>${r.no}</td><td>R${r.round}</td><td>${r.time}</td><td>${r.el}</td><td style="text-align:left">${esc(r.label)}</td><td>${r.p > 0 ? '+' + r.p : r.p}</td></tr>`).join('') || '<tr><td colspan="6">Belum ada kejadian</td></tr>';
+    const red = c === 'hong';
+    return `<table class="sheet-table" style="margin-top:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <thead>
+        <tr><th colspan="6" style="background:${red ? '#fecaca' : '#bfdbfe'};text-align:left;font-size:10pt">${red ? 'SUDUT MERAH (HONG)' : 'SUDUT BIRU (CHONG)'}: ${esc(st[c + 'Name'])} | ${esc(st[c + 'Dojang'])} | Coach: ${esc(st[c + 'Coach'])}</th></tr>
+        <tr style="background:#eee"><th>No</th><th>Ronde</th><th>Menit (sisa waktu)</th><th>Menit ke- (berjalan)</th><th>Teknik / kejadian</th><th>Poin</th></tr>
+      </thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr style="font-weight:bold"><td colspan="5" style="text-align:right">Total poin</td><td>${total}</td></tr></tfoot>
+    </table>`;
+  };
+  $('printable-scoresheet').innerHTML = `
+  <div class="sheet-box">
+    <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px">
+      <h1 style="font-size:18pt;letter-spacing:1px">STATISTIK TAEKWONDO</h1>
+      <p style="font-size:9pt;margin-top:2px">${esc(st.event)}</p>
+    </div>
+    <table class="sheet-table"><tr>
+      <td><b>ID partai:</b> ${esc(st.matchId)}</td><td><b>Lapangan:</b> ${esc(st.mat)}</td>
+      <td><b>Kategori:</b> ${esc(st.cat)}</td><td><b>Format:</b> Best of 3</td></tr></table>
+    <table class="sheet-table"><thead><tr style="background:#eee"><th>Sudut</th><th>Atlet</th><th>Dojang</th><th>Coach</th><th>Total poin</th><th>Gam-jeom</th><th>Ronde menang</th></tr></thead>
+      <tbody>${corner('hong')}${corner('chong')}</tbody></table>
+    <p style="margin-top:12px;font-weight:bold;font-size:10pt">Hasil per ronde</p>${roundsHTML('sheet-table')}
+    ${cornerTable('hong')}
+    ${cornerTable('chong')}
+    <p style="margin-top:12px;font-weight:bold;font-size:10pt">Rekap teknik</p>${statsHTML('sheet-table')}
+    <div style="border:2px solid #000;background:#fef08a;padding:8px;text-align:center;font-weight:bold;margin-top:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact">PEMENANG PARTAI: ${winner}</div>
+    <div style="display:flex;justify-content:space-between;margin-top:30px;font-size:8pt">
+      <div>Dicetak: ${new Date().toLocaleString('id-ID')}<br>
+        Petugas statistik: ${session ? esc(session.stat.name) : '-'}<br>
+        Caller: ${session ? esc(session.caller.name) : '-'}</div>
+      <div style="border-top:1px solid #000;width:140px;text-align:center;padding-top:3px">Wasit utama</div>
+      <div style="border-top:1px solid #000;width:140px;text-align:center;padding-top:3px">Match chairman</div>
+    </div>
+  </div>`;
+  try { window.print(); } catch (err) { alert('Browser memblokir dialog cetak. Pakai tombol "Unduh PDF scoresheet", lalu cetak dari file PDF.'); }
+});
+
+// ---------- LOGIN PETUGAS ----------
+const cleanName = s => String(s).trim().replace(/\s+/g, ' ');
+$('btn-login').addEventListener('click', () => {
+  const a = cleanName($('l-sname').value), b = cleanName($('l-cname').value);
+  const errs = [];
+  if (!a) errs.push('Nama petugas statistik belum diisi');
+  if (!b) errs.push('Nama caller belum diisi');
+  if (errs.length) { $('login-err').textContent = errs.join(' | '); return; }
+  session = { stat: { name: a }, caller: { name: b } };
+  $('login-err').textContent = '';
+  $('login-modal').style.display = 'none';
+  try { sessionStorage.setItem('tkd_session', JSON.stringify(session)); } catch (x) { }
+  render();
+  openEv();
+});
+$('btn-logout').addEventListener('click', () => {
+  if (modalOpen()) return;
+  ask('Ganti petugas? Timer dihentikan, data pertandingan tetap ada.', () => {
+  stopTimer();
+  session = null;
+  try { sessionStorage.removeItem('tkd_session'); } catch (x) { }
+  ['l-sname', 'l-cname'].forEach(id => { $(id).value = ''; });
+  $('login-modal').style.display = 'flex';
+  render();
+  });
+});
+
+// ---------- UBAH WAKTU MANUAL ----------
+let timeEditFrom = 0;
+const clampTime = t => Math.min(PRESET.roundDuration, Math.max(1, Math.round(t)));
+function fillTime() {
+  $('tm-now').textContent = fmt(S.roundTime);
+  $('tm-min').value = Math.floor(S.roundTime / 60);
+  $('tm-sec').value = S.roundTime % 60;
+}
+function openTime() {
+  if (S.status !== 'IN_PROGRESS' || S.awaitingTie || modalOpen()) return;
+  stopTimer();
+  timeEditFrom = S.roundTime;
+  render();
+  fillTime();
+  $('time-modal').style.display = 'flex';
+}
+function closeTime() {
+  $('time-modal').style.display = 'none';
+  if (S.roundTime !== timeEditFrom) addLog(`<i>Waktu diubah manual ${fmt(timeEditFrom)} ke ${fmt(S.roundTime)}</i>`);
+  render();
+}
+$('btn-time-edit').addEventListener('click', openTime);
+$('tm-close').addEventListener('click', closeTime);
+$('tm-apply').addEventListener('click', () => {
+  S.roundTime = clampTime((+$('tm-min').value || 0) * 60 + (+$('tm-sec').value || 0));
+  closeTime();
+});
+document.querySelectorAll('#time-modal [data-d]').forEach(b => {
+  b.addEventListener('click', () => { S.roundTime = clampTime(S.roundTime + Number(b.dataset.d)); fillTime(); render(); });
+});
+
+// ---------- KOREKSI SKOR MANUAL ----------
+function openScore() {
+  if (S.status !== 'IN_PROGRESS' || S.awaitingTie || modalOpen()) return;
+  stopTimer();
+  render();
+  $('ms-hp').value = S.sc.hong.points; $('ms-cp').value = S.sc.chong.points;
+  $('ms-hg').value = S.sc.hong.gam; $('ms-cg').value = S.sc.chong.gam;
+  $('ms-reason').value = '';
+  $('score-modal').style.display = 'flex';
+}
+function closeScore() { $('score-modal').style.display = 'none'; render(); }
+function applyScore() {
+  const n = id => parseInt($('ms-' + id).value, 10);
+  const next = { hong: { points: n('hp'), gam: n('hg') }, chong: { points: n('cp'), gam: n('cg') } };
+  const vals = [next.hong.points, next.hong.gam, next.chong.points, next.chong.gam];
+  if (vals.some(v => Number.isNaN(v)) || next.hong.gam < 0 || next.chong.gam < 0) {
+    return say('Isi semua kolom dengan angka. Gam-jeom tidak boleh negatif.');
+  }
+  const reason = $('ms-reason').value.trim();
+  const parts = [];
+  snap();
+  for (const c of ['hong', 'chong']) {
+    const me = S.sc[c], nx = next[c];
+    const dp = nx.points - me.points, dg = nx.gam - me.gam;
+    if (!dp && !dg) continue;
+    const notes = [];
+    if (dp) notes.push(`skor ${me.points} jadi ${nx.points}`);
+    if (dg) notes.push(`gam-jeom ${me.gam} jadi ${nx.gam}`);
+    if (reason) notes.push('alasan: ' + reason);
+    S.events.push({ round: S.round, time: fmt(S.roundTime), corner: c, tech: 'MANUAL', delta: dp, note: notes.join(', ') });
+    parts.push(`${c.toUpperCase()} ${notes.join(', ')}`);
+    me.points = nx.points; me.gamR = Math.max(0, me.gamR + dg); me.gam = nx.gam;
+  }
+  if (!parts.length) { undoStack.pop(); return closeScore(); }
+  addLog(`<b>[KOREKSI MANUAL]</b> ${esc(parts.join(' | '))}${session ? ' (oleh ' + esc(session.stat.name) + ')' : ''}`);
+  $('score-modal').style.display = 'none';
+  checkAuto();
+  render();
+}
+$('btn-score-edit').addEventListener('click', openScore);
+$('ms-cancel').addEventListener('click', closeScore);
+$('ms-apply').addEventListener('click', applyScore);
+
+// ---------- HASIL TEKNIK: MADE / MISS ----------
+let hitPending = null, hitLoc = null, hitKind = 'body', hitSide = null;
+function setSide(v) { hitSide = hitSide === v ? null : v; $('side-R').classList.toggle('on', hitSide === 'R'); $('side-L').classList.toggle('on', hitSide === 'L'); }
+$('side-R').addEventListener('click', () => setSide('R'));
+$('side-L').addEventListener('click', () => setSide('L'));
+const ZONES = { body: [['rk', 'Rusuk kanan'], ['dd', 'Dada'], ['pr', 'Perut'], ['rl', 'Rusuk kiri']], head: [['ha', 'Kepala atas'], ['hk', 'Kepala kanan'], ['hd', 'Wajah / depan'], ['hl', 'Kepala kiri']] };
+const ZR = { body: [['rk', 0, 0, .25, 1], ['dd', .25, 0, .5, .5], ['pr', .25, .5, .5, .5], ['rl', .75, 0, .25, 1]], head: [['ha', 0, 0, 1, .2], ['hk', 0, .2, .25, .8], ['hd', .25, .2, .5, .8], ['hl', .75, .2, .25, .8]] };
+const gOf = t => TMAP[t].g || 'IVR';
+const kindOf = t => (/^HEAD/.test(gOf(t)) ? 'head' : 'body');
+const zName = l => { const z = [...ZONES.body, ...ZONES.head].find(q => q[0] === l.z); return z ? z[1] : '-'; };
+const zoneOf = (k, x, y) => k === 'body' ? (x < .25 ? 'rk' : x > .75 ? 'rl' : y < .5 ? 'dd' : 'pr') : (y < .2 ? 'ha' : x < .25 ? 'hk' : x > .75 ? 'hl' : 'hd');
+function drawHit(k) {
+  hitKind = k;
+  const lab = (x, y, t) => `<text x="${x}" y="${y}" font-size="6" fill="#8a99ad" text-anchor="middle">${t}</text>`;
+  $('hit-svg').innerHTML = k === 'body'
+    ? '<rect width="100" height="100" fill="#0f172a"/><path d="M16 3Q50 -3 84 3L99 24L90 42L78 42V97Q50 104 22 97V42L10 42L1 24Z" fill="#1e293b" stroke="#94a3b8" stroke-width="1.2"/><path d="M25 0V100M75 0V100M25 50H75" stroke="#475569" stroke-dasharray="3"/>' + lab(12.5, 52, 'R.Kanan') + lab(50, 26, 'Dada') + lab(50, 76, 'Perut') + lab(87.5, 52, 'R.Kiri')
+    : '<ellipse cx="50" cy="50" rx="48" ry="49" fill="#1e293b" stroke="#64748b"/><path d="M4 20H96M25 20V96M75 20V96" stroke="#475569" stroke-dasharray="3"/>' + lab(50, 12, 'Atas') + lab(12.5, 58, 'Kanan') + lab(50, 58, 'Wajah') + lab(87.5, 58, 'Kiri');
+  $('hit-hint').textContent = (k === 'body' ? 'Body protector' : 'Head protector') + ': klik titik kena (opsional). Kiri gambar = sisi kanan atlet yang diserang.';
+}
+$('hit-svg').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+  hitLoc = { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, z: zoneOf(hitKind, x, y) };
+  e.currentTarget.querySelectorAll('circle').forEach(c => c.remove());
+  e.currentTarget.insertAdjacentHTML('beforeend', `<circle cx="${x * 100}" cy="${y * 100}" r="3" fill="#f59e0b" stroke="#fff"/>`);
+  $('hit-hint').textContent = 'Lokasi: ' + zName(hitLoc) + '. Pilih MADE atau MISS.';
+});
+function openHit(c, t) {
+  if (!canScore()) return;
+  // waktu dan ronde dicatat saat tombol ditekan, bukan saat Made/Miss dipilih
+  hitPending = { c, t, time: fmt(S.roundTime), round: S.round };
+  const T = TMAP[t];
+  $('hit-who').innerHTML = `<b style="color:${COLOR[c]}">${c === 'hong' ? 'HONG (merah)' : 'CHONG (biru)'}</b>: ${esc(name(c))}<br>${esc(T.kor)} (${esc(T.ina)}) <b>+${T.pts}</b> jika masuk`;
+  hitLoc = null; hitSide = null; setSide(null); drawHit(kindOf(t));
+  $('hit-modal').style.display = 'flex';
+  render();
+}
+function closeHit() { $('hit-modal').style.display = 'none'; hitPending = null; }
+function confirmHit(result) {
+  if (!hitPending) return;
+  if (result === 'MADE' && !hitLoc) { $('hit-hint').textContent = 'WAJIB: klik titik kena pada gambar dulu, baru pilih MADE.'; return; }
+  const p = hitPending, lc = hitLoc, sd = hitSide;
+  closeHit();
+  if (p.round !== S.round || S.status !== 'IN_PROGRESS') return render();
+  act(p.c, p.t, undefined, result, p.time, lc, sd);
+}
+$('hit-made').addEventListener('click', () => confirmHit('MADE'));
+$('hit-miss').addEventListener('click', () => confirmHit('MISS'));
+$('hit-cancel').addEventListener('click', () => { closeHit(); render(); });
+
+// ---------- PILIH JENIS GAM-JEOM ----------
+let gamCorner = null;
+$('gam-grid').innerHTML = GAMTYPES.map(g => `<button class="gbtn" data-g="${g.id}"><b>${g.ina}</b><small>${g.eng}</small></button>`).join('');
+function openGam(c) {
+  if (!canScore()) return;
+  stopTimer();
+  render();
+  gamCorner = c;
+  $('gam-who').textContent = `${c === 'hong' ? 'HONG (merah)' : 'CHONG (biru)'}: ${S.setup[c + 'Name']}. Poin atlet ini -1, poin lawan +1.`;
+  $('gam-modal').style.display = 'flex';
+}
+function closeGam() { $('gam-modal').style.display = 'none'; gamCorner = null; render(); }
+$('gam-cancel').addEventListener('click', closeGam);
+$('gam-grid').addEventListener('click', e => {
+  const b = e.target.closest('.gbtn');
+  if (!b || !gamCorner) return;
+  const c = gamCorner;
+  $('gam-modal').style.display = 'none';
+  gamCorner = null;
+  act(c, 'GAM_JEOM', b.dataset.g);
+});
+
+// pulihkan data sesi setelah refresh (hilang kalau tab/software ditutup)
+(function () {
+  try {
+    const u = sessionStorage.getItem('tkd_logo');
+    if (u) {
+      const b = atob(u.split(',')[1]), a = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+      const im = new Image();
+      im.onload = () => { LOGO = { bytes: a, w: im.width, h: im.height }; $('ev-prev').src = u; $('ev-prev').style.display = 'block'; };
+      im.src = u;
+    }
+    const ev = JSON.parse(sessionStorage.getItem('tkd_event') || 'null');
+    if (ev) Object.assign(S.setup, ev);
+    const se = JSON.parse(sessionStorage.getItem('tkd_session') || 'null');
+    if (se && se.stat && se.caller) { session = se; $('login-modal').style.display = 'none'; }
+  } catch (x) { }
+})();
+buildActs();
+render();
+</script>
+</body>
+</html>
